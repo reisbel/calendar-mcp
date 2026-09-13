@@ -1,0 +1,24 @@
+{
+  "name": "calendar-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal Google Calendar MCP server for a single Google account: list, search, free time, create, update, delete and RSVP over stdio",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/reisbel/calendar-mcp.git"
+  },
+  "keywords": ["mcp", "model-context-protocol", "google-calendar", "claude-code"],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "auth": "node auth.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "googleapis": "^180.0.0"
+  }
+}
