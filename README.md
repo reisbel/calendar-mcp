@@ -47,14 +47,17 @@ Respond defaults to `all`, because the point of an RSVP is that the organizer he
 | `search_events` | Free-text search across titles, descriptions, locations and attendees. Defaults to a two-year window |
 | `get_event` | One event in full |
 | `find_free_time` | Busy blocks and free gaps across one or more calendars inside a window |
-| `create_event` | **Writes.** Timed or all-day, optional attendees, recurrence and reminders |
-| `update_event` | **Writes.** Changes only the fields passed |
+| `create_event` | **Writes.** Timed or all-day, optional attendees, recurrence, reminders and colour |
+| `update_event` | **Writes.** Changes only the fields passed, colour included |
 | `delete_event` | **Writes. Irreversible.** Returns the event as it was before deletion |
 | `respond_to_event` | **Writes.** Accept, decline or tentatively accept an invitation |
 
 Time inputs are RFC 3339 timestamps such as `2026-09-13T09:00:00-04:00`.
 A bare `YYYY-MM-DD` start makes an all-day event.
 A timestamp without an offset is interpreted in `timeZone` when given, otherwise in the calendar's own time zone.
+
+`colorId` on create and update takes Google's fixed event palette by name or number: 1 Lavender, 2 Sage, 3 Grape, 4 Flamingo, 5 Banana, 6 Tangerine, 7 Peacock, 8 Graphite, 9 Blueberry, 10 Basil, 11 Tomato.
+Every event the server returns carries `colorId` and its `color` name, so a change can be checked in the same call.
 
 ## Files
 
