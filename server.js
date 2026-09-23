@@ -36,6 +36,23 @@ const asArray = (v) => (v == null ? [] : Array.isArray(v) ? v : [v]);
 const DAY_MS = 24 * 60 * 60 * 1000;
 const isDateOnly = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s);
 
+// Google Calendar's fixed event palette. The API only takes the numeric id, but
+// the names are what people see in the UI, so tools accept either.
+const EVENT_COLORS = {
+  1: 'Lavender', 2: 'Sage', 3: 'Grape', 4: 'Flamingo', 5: 'Banana', 6: 'Tangerine',
+  7: 'Peacock', 8: 'Graphite', 9: 'Blueberry', 10: 'Basil', 11: 'Tomato',
+};
+
+function resolveColorId(value) {
+  if (value === undefined) return undefined;
+  const text = String(value).trim();
+  if (EVENT_COLORS[text]) return text;
+  const byName = Object.entries(EVENT_COLORS).find(([, name]) => name.toLowerCase() === text.toLowerCase());
+  if (byName) return byName[0];
+  const options = Object.entries(EVENT_COLORS).map(([id, name]) => `${id} ${name}`).join(', ');
+  throw new Error(`Unknown colorId "${value}". Use a name or number from: ${options}.`);
+}
+
 /** Trim a Google event resource down to the fields a client actually needs. */
 function formatEvent(e, calendarId) {
   const allDay = Boolean(e.start?.date);
@@ -49,6 +66,8 @@ function formatEvent(e, calendarId) {
     end: e.end?.dateTime ?? e.end?.date,
     timeZone: e.start?.timeZone,
     location: e.location,
+    colorId: e.colorId,
+    color: e.colorId ? EVENT_COLORS[e.colorId] : undefined,
     description: e.description && e.description.length > 1000
       ? `${e.description.slice(0, 1000)}...`
       : e.description,
@@ -181,6 +200,7 @@ const TOOLS = [
         attendees: { type: 'array', items: { type: 'string' }, description: 'Attendee email addresses.' },
         recurrence: { type: 'array', items: { type: 'string' }, description: 'RRULE lines, e.g. ["RRULE:FREQ=WEEKLY;COUNT=4"].' },
         reminderMinutes: { type: 'array', items: { type: 'number' }, description: 'Popup reminders in minutes before start. Omit for calendar defaults.' },
+        colorId: { type: 'string', description: 'Event colour, by name or number: 1 Lavender, 2 Sage, 3 Grape, 4 Flamingo, 5 Banana, 6 Tangerine, 7 Peacock, 8 Graphite, 9 Blueberry, 10 Basil, 11 Tomato. Omit for the calendar default.' },
         calendarId: { type: 'string', description: 'Default "primary".' },
         sendUpdates: { type: 'string', enum: ['none', 'all', 'externalOnly'], description: 'Whether to email attendees. Default "none".' },
       },
@@ -204,6 +224,7 @@ const TOOLS = [
         description: { type: 'string' },
         location: { type: 'string' },
         attendees: { type: 'array', items: { type: 'string' }, description: 'Replaces the attendee list.' },
+        colorId: { type: 'string', description: 'Event colour, by name or number: 1 Lavender, 2 Sage, 3 Grape, 4 Flamingo, 5 Banana, 6 Tangerine, 7 Peacock, 8 Graphite, 9 Blueberry, 10 Basil, 11 Tomato. Omit for the calendar default.' },
         sendUpdates: { type: 'string', enum: ['none', 'all', 'externalOnly'], description: 'Default "none".' },
       },
       required: ['eventId'],
@@ -363,9 +384,10 @@ async function buildTimes(calendar, calendarId, { start, end, timeZone }) {
 async function createEvent(args) {
   const {
     calendarId = 'primary', summary, description, location, attendees, recurrence,
-    reminderMinutes, sendUpdates = 'none',
+    reminderMinutes, colorId, sendUpdates = 'none',
   } = args;
   if (!summary) throw new Error('summary is required.');
+  const resolvedColor = resolveColorId(colorId);
   const calendar = calendarClient();
   const times = await buildTimes(calendar, calendarId, args);
   const requestBody = {
@@ -378,14 +400,16 @@ async function createEvent(args) {
     ...(asArray(reminderMinutes).length
       ? { reminders: { useDefault: false, overrides: asArray(reminderMinutes).map((m) => ({ method: 'popup', minutes: m })) } }
       : {}),
+    ...(resolvedColor ? { colorId: resolvedColor } : {}),
   };
   const { data } = await calendar.events.insert({ calendarId, sendUpdates, requestBody });
   return { status: 'created', sendUpdates, event: formatEvent(data, calendarId) };
 }
 
 async function updateEvent(args) {
-  const { eventId, calendarId = 'primary', summary, description, location, attendees, sendUpdates = 'none' } = args;
+  const { eventId, calendarId = 'primary', summary, description, location, attendees, colorId, sendUpdates = 'none' } = args;
   if (!eventId) throw new Error('eventId is required.');
+  const resolvedColor = resolveColorId(colorId);
   if ((args.start && !args.end) || (!args.start && args.end)) {
     throw new Error('Pass start and end together when changing the time.');
   }
@@ -397,6 +421,7 @@ async function updateEvent(args) {
     ...(location !== undefined ? { location } : {}),
     ...times,
     ...(attendees !== undefined ? { attendees: asArray(attendees).map((email) => ({ email })) } : {}),
+    ...(resolvedColor ? { colorId: resolvedColor } : {}),
   };
   if (Object.keys(requestBody).length === 0) throw new Error('Nothing to change: pass at least one field.');
   const { data } = await calendar.events.patch({ calendarId, eventId, sendUpdates, requestBody });
