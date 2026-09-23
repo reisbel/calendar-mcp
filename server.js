@@ -20,6 +20,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { CREDENTIALS, TOKEN } from './config.js';
+import { EVENT_COLORS, resolveColorId } from './colors.js';
 
 function calendarClient() {
   if (!existsSync(CREDENTIALS)) throw new Error(`Missing ${CREDENTIALS}. See README.md.`);
@@ -35,23 +36,6 @@ function calendarClient() {
 const asArray = (v) => (v == null ? [] : Array.isArray(v) ? v : [v]);
 const DAY_MS = 24 * 60 * 60 * 1000;
 const isDateOnly = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s);
-
-// Google Calendar's fixed event palette. The API only takes the numeric id, but
-// the names are what people see in the UI, so tools accept either.
-const EVENT_COLORS = {
-  1: 'Lavender', 2: 'Sage', 3: 'Grape', 4: 'Flamingo', 5: 'Banana', 6: 'Tangerine',
-  7: 'Peacock', 8: 'Graphite', 9: 'Blueberry', 10: 'Basil', 11: 'Tomato',
-};
-
-function resolveColorId(value) {
-  if (value === undefined) return undefined;
-  const text = String(value).trim();
-  if (EVENT_COLORS[text]) return text;
-  const byName = Object.entries(EVENT_COLORS).find(([, name]) => name.toLowerCase() === text.toLowerCase());
-  if (byName) return byName[0];
-  const options = Object.entries(EVENT_COLORS).map(([id, name]) => `${id} ${name}`).join(', ');
-  throw new Error(`Unknown colorId "${value}". Use a name or number from: ${options}.`);
-}
 
 /** Trim a Google event resource down to the fields a client actually needs. */
 function formatEvent(e, calendarId) {

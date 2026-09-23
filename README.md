@@ -64,6 +64,8 @@ Every event the server returns carries `colorId` and its `color` name, so a chan
 | File | Purpose |
 | --- | --- |
 | `server.js` | The MCP server |
+| `colors.js` | Google's fixed event palette and the `colorId` resolver |
+| `colors.test.js` | Unit tests for the resolver, run with `npm test` |
 | `auth.js` | One-time OAuth consent flow; writes the token file |
 | `config.js` | File locations and scopes, overridable through environment variables |
 | `credentials.json` | OAuth client from Google Cloud Console. Gitignored, never commit it |
